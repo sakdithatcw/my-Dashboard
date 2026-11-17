@@ -1,0 +1,31 @@
+services:
+  # Go backend + SQLite (ข้อมูลเก็บใน volume db-data จึงไม่หายตอน restart)
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      - DB_PATH=/data/dashboard.db
+    volumes:
+      - db-data:/data
+
+  # Vue ที่ build แล้ว เสิร์ฟด้วย nginx ตัวเล็กๆ
+  web:
+    build: ./vue
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  # ประตูหน้าบ้าน: / -> web, /api -> backend
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+      - web
+    restart: unless-stopped
+
+volumes:
+  db-data:
